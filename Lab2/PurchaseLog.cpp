@@ -5,6 +5,9 @@ PurchaseLog::PurchaseLog(std::vector<std::string> data) {
 		throw std::invalid_argument("Incorrect format");
 	}
 	_date = GetTimePoint(data[0]);
+	if (_date.time_since_epoch() <= std::chrono::system_clock::duration(-10000000)) {
+		throw std::invalid_argument("Incorrect format");
+	}
 	_brand = data[1];
 	_miles = std::stod(data[2]);
 	_price = std::stod(data[3]);

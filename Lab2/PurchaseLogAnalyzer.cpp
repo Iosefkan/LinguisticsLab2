@@ -1,11 +1,48 @@
 #include <PurchaseLogAnalyzer.h>
 
+#define SAVE_TO_FILE 0x31
+
+std::vector<PurchaseLog*> ReadLogFromConsole() {
+    std::vector<PurchaseLog*> result;
+    std::vector<std::string> buffer;
+    std::vector<std::string> logs;
+    std::cout << "Input how many rows will be in your log" << std::endl;
+    int rows = GetInt();
+    std::cout << "Consecutively input each log row in separate line in the following format:" << std::endl
+        << "Purchase date YYYY-MM-DD SPACE Brand name SPACE Mileage SPACE Price per gallon SPACE Number of gallons SPACE Total cost" << std::endl;
+    for (int i = 0; i < rows;) {
+        std::string line;
+        std::getline(std::cin, line);
+        std::istringstream iss(line);
+        Split(iss.str(), buffer, ' ');
+        try {
+            auto purchase = new PurchaseLog(buffer);
+            result.push_back(purchase);
+        }
+        catch (...) {
+            std::cout << "Inputted string contains incorrect data, input again" << std::endl;
+            continue;
+        }
+        logs.push_back(line);
+        i++;
+    };
+
+    std::cout
+        << "Press 1 if you want to save gas purchas logs to the file, otherwise press anything else" << std::endl;
+    auto option = _getch();
+    if (option == SAVE_TO_FILE) {
+        SaveToFileLogs(logs);
+    }
+
+    return result;
+}
+
 std::vector<PurchaseLog*> ReadLogFromFile(std::string path) {
     std::ifstream file(path);
     std::vector<PurchaseLog*> result;
     bool isCorrupted = false;
     if (!file.is_open()) {
-        std::cout << "File at the path does not exist";
+        std::cout << "File at the path does not exist" << std::endl;
         return result;
     }
     std::string line;
@@ -15,7 +52,8 @@ std::vector<PurchaseLog*> ReadLogFromFile(std::string path) {
         std::istringstream iss(line);
         Split(iss.str(), buffer, ' ');
         try {
-            result.push_back(new PurchaseLog(buffer));
+            auto purchase = new PurchaseLog(buffer);
+            result.push_back(purchase);
         }
         catch (...) {
             isCorrupted = true;
@@ -28,7 +66,7 @@ std::vector<PurchaseLog*> ReadLogFromFile(std::string path) {
     return result;
 }
 
-void PrintAnalyzedLogs(std::vector<PurchaseLog*>& data) {
+TextTable GetAnalyzedLogs(std::vector<PurchaseLog*>& data) {
     size_t size = data.size();
     TextTable table('-', '|', '+');
     InitStatisticsTable(table);
@@ -57,7 +95,7 @@ void PrintAnalyzedLogs(std::vector<PurchaseLog*>& data) {
             double milesPerGallon = milesDiff / log1->GetTotalGallons();
             double pricePerMile = log1->GetCost() / milesDiff;
             double pricePerDay = log1->GetCost() / dayDiff;
-            double timePerGallon = log1->GetTotalGallons() / dayDiff;
+            double timePerGallon = dayDiff / log1->GetTotalGallons();
             table.add(Round(milesDiff));
             table.add(Round(milesPerGallon));
             table.add(Round(pricePerMile));
@@ -88,11 +126,10 @@ void PrintAnalyzedLogs(std::vector<PurchaseLog*>& data) {
         table.add(Round(prevTimePerGallon));
         table.endOfRow();
     }
-    std::cout << "Analyzed by each log entry:" << std::endl;
-    std::cout << table;
+    return table;
 }
 
-void PrintAnalyzedLogsByBrands(std::vector<PurchaseLog*>& data) {
+TextTable GetAnalyzedLogsByBrands(std::vector<PurchaseLog*>& data) {
     size_t size = data.size();
     TextTable table('-', '|', '+');
     std::unordered_map<std::string, BrandStatistics*> statistics;
@@ -121,7 +158,7 @@ void PrintAnalyzedLogsByBrands(std::vector<PurchaseLog*>& data) {
             double milesPerGallon = milesDiff / log1->GetTotalGallons();
             double pricePerMile = log1->GetCost() / milesDiff;
             double pricePerDay = log1->GetCost() / dayDiff;
-            double timePerGallon = log1->GetTotalGallons() / dayDiff;
+            double timePerGallon = dayDiff / log1->GetTotalGallons();
             auto entry = statistics.find(log1->GetBrand());
             if (entry == statistics.end()) {
                 auto newBrandSt = new BrandStatistics();
@@ -152,16 +189,168 @@ void PrintAnalyzedLogsByBrands(std::vector<PurchaseLog*>& data) {
         AddBrandStatisticsToTable(table, entry.second);
         table.endOfRow();
     }
-    std::cout << "Analyzed by brand:" << std::endl;
-    std::cout << table;
 
+    return table;
 }
 
-void InitAbbreviations() {
-    std::cout << std::endl << "Due to limited space column headers are abbreviated." << std::endl
-        << "Below are the abbreviated column headers and their full versions:" << std::endl;
+void SaveToFileLogs(std::vector<std::string>& logs) {
+    std::cout << "Input file name" << std::endl;
+    while (true)
+    {
+        std::string fileName = GetString();
+        if (fileName.find(".txt") >= std::string::npos)
+        {
+            std::cout << "Incorrect file name, try again" << std::endl;
+            continue;
+        }
+        std::ifstream check(fileName);
+        if (check.is_open())
+        {
+            std::cout
+                << "File with this name already exists" << std::endl
+                << "Do you want to rewrite this file?" << std::endl
+                << "If you do, then input 'yes', otherwise input anything else" << std::endl;
+            std::string rewrite = GetString();
+            if (rewrite == "yes")
+            {
+                check.close();
+                std::ofstream input(fileName);
+                if (!input.is_open())
+                {
+                    std::cout << "This file is read-only" << std::endl;
+                    std::cout << "Input file name" << std::endl;
+                    continue;
+                }
+                if (!std::filesystem::is_regular_file(fileName))
+                {
+                    std::cout << "This file name is not allowed" << std::endl;
+                    input.close();
+                    remove(fileName.c_str());
+                }
+                {
+                    for (auto& line : logs) {
+                        input << line << std::endl;
+                    }
+                }
+                std::cout << "Data is saved" << std::endl;
+                break;
+            }
+            else {
+                std::cout << "Input another filename" << std::endl;
+            }
+        }
+        else
+        {
+            check.close();
+            std::ofstream input(fileName);
+            if (!input.is_open())
+            {
+                std::cout << "This file is read-only" << std::endl;
+                std::cout << "Input file name" << std::endl;
+                continue;
+            }
+            if (!std::filesystem::is_regular_file(fileName))
+            {
+                std::cout << "This file name is not allowed" << std::endl;
+                input.close();
+                remove(fileName.c_str());
+            }
+            {
+                for (auto& line : logs) {
+                    input << line << std::endl;
+                }
+            }
+            std::cout << "Data is saved" << std::endl;
+            break;
+        }
+    }
+}
 
-    std::cout << "D\t=>\tDate" << std::endl
+void SaveToFile(TextTable& analyzed, TextTable& analyzedByBrand) {
+    std::cout << "Input file name" << std::endl;
+    while (true)
+    {
+        std::string fileName = GetString();
+        if (fileName.find(".txt") >= std::string::npos)
+        {
+            std::cout << "Incorrect file name, try again" << std::endl;
+            continue;
+        }
+        std::ifstream check(fileName);
+        if (check.is_open())
+        {
+            std::cout
+                << "File with this name already exists" << std::endl
+                << "Do you want to rewrite this file?" << std::endl
+                << "If you do, then input 'yes', otherwise input anything else" << std::endl;
+            std::string rewrite = GetString();
+            if (rewrite == "yes")
+            {
+                check.close();
+                std::ofstream input(fileName);
+                if (!input.is_open())
+                {
+                    std::cout << "This file is read-only" << std::endl;
+                    std::cout << "Input file name" << std::endl;
+                    continue;
+                }
+                if (!std::filesystem::is_regular_file(fileName))
+                {
+                    std::cout << "This file name is not allowed" << std::endl;
+                    input.close();
+                    remove(fileName.c_str());
+                }
+                {
+                    InitAbbreviations(input);
+                    input
+                        << std::endl
+                        << "Analyzed by each log entry:" << std::endl
+                        << analyzed << std::endl;
+                    input
+                        << "Analyzed by brand:" << std::endl
+                        << analyzedByBrand << std::endl;
+                }
+                std::cout << "Data is saved" << std::endl;
+                break;
+            }
+            else {
+                std::cout << "Input another filename" << std::endl;
+            }
+        }
+        else
+        {
+            check.close();
+            std::ofstream input(fileName);
+            if (!input.is_open())
+            {
+                std::cout << "This file is read-only" << std::endl;
+                std::cout << "Input file name" << std::endl;
+                continue;
+            }
+            if (!std::filesystem::is_regular_file(fileName))
+            {
+                std::cout << "This file name is not allowed" << std::endl;
+                input.close();
+                remove(fileName.c_str());
+            }
+            {
+                InitAbbreviations(input);
+                input
+                    << std::endl
+                    << "Analyzed by each log entry:" << std::endl
+                    << analyzed << std::endl;
+                input
+                    << "Analyzed by brand:" << std::endl
+                    << analyzedByBrand << std::endl;
+            }
+            std::cout << "Data is saved" << std::endl;
+            break;
+        }
+    }
+}
+
+void InitAbbreviations(std::ostream& stream) {
+    stream << "D\t=>\tDate" << std::endl
         << "B\t=>\tBrand" << std::endl
         << "M\t=>\tMiles" << std::endl
         << "PPG\t=>\tPrice per gallon" << std::endl

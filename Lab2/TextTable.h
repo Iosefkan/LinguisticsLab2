@@ -6,13 +6,6 @@
 #include <string>
 #include <vector>
 
-#ifdef TEXTTABLE_ENCODE_MULTIBYTE_STRINGS
-#include <clocale>
-#ifndef TEXTTABLE_USE_EN_US_UTF8
-#define TEXTTABLE_USE_EN_US_UTF8
-#endif
-#endif
-
 class TextTable {
 public:
     enum class Alignment { LEFT, RIGHT };

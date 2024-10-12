@@ -1,8 +1,8 @@
 #pragma once
 
 #include <PurchaseLog.h>
-#include <fstream>
 #include <unordered_map>
+#include <conio.h>
 
 struct BrandStatistics {
 	double averageCost = 0;
@@ -14,13 +14,17 @@ struct BrandStatistics {
 	double averageTimePerGallon = 0;
 };
 
+void SaveToFileLogs(std::vector<std::string>& logs);
+
+std::vector<PurchaseLog*> ReadLogFromConsole();
+
 std::vector<PurchaseLog*> ReadLogFromFile(std::string path);
 
-void PrintAnalyzedLogs(std::vector<PurchaseLog*>& data);
+TextTable GetAnalyzedLogs(std::vector<PurchaseLog*>& data);
 
-void PrintAnalyzedLogsByBrands(std::vector<PurchaseLog*>& data);
+TextTable GetAnalyzedLogsByBrands(std::vector<PurchaseLog*>& data);
 
-void InitAbbreviations();
+void InitAbbreviations(std::ostream& stream);
 
 void InitStatisticsTable(TextTable& table);
 
@@ -29,3 +33,5 @@ void InitBrandStatisticsTable(TextTable& table);
 void AddLogToTable(TextTable& table, PurchaseLog* log);
 
 void AddBrandStatisticsToTable(TextTable& table, BrandStatistics* brandSt);
+
+void SaveToFile(TextTable& analyzed, TextTable& analyzedByBrand);

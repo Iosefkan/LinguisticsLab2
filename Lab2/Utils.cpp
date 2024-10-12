@@ -13,6 +13,19 @@ std::string GetString()
 	return result;
 }
 
+int GetInt()
+{
+	int result;
+	while (!(std::cin >> result))
+	{
+		std::cout << "Invalid input, try again\n";
+		std::cin.clear();
+		std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	}
+	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	return result;
+}
+
 std::string GetLocalDateString(std::chrono::time_point<std::chrono::system_clock>& time_point) {
 	auto in_time_t = std::chrono::system_clock::to_time_t(time_point);
 	std::stringstream ss;
@@ -66,9 +79,4 @@ std::string Round(double value, int precision)
 		s.erase(s.size() - precision + 1);
 	}
 	return s;
-
-	//std::string rounded = std::to_string(std::round(value / precision) * precision);
-	//rounded.erase(rounded.find_last_not_of('0') + 1, std::string::npos);
-	//rounded.erase(rounded.find_last_not_of('.') + 1, std::string::npos);
-	//return rounded;
 }

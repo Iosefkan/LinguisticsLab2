@@ -2,9 +2,13 @@
 
 #include <TextTable.h>
 #include <chrono>
-#include <ctime>    
+#include <ctime>   
+#include <fstream>
+#include <filesystem>
 
 typedef std::chrono::time_point<std::chrono::system_clock> Time;
+
+int GetInt();
 
 std::string GetString();
 
